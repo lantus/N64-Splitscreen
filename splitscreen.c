@@ -310,14 +310,7 @@ int main()
     static const GLfloat light_diffuse[] = {0.8f, 0.8f, 1.0f, 1.0f};
     glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-
-    glEnable(GL_LIGHT1);
-    static const GLfloat light_position1[] = {1.0f, 0.0f, -5.0f, 1.0f};
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    static const GLfloat light_ambient1[] = {0.1f, 0.4f, 0.3f, 1.0f};
-    static const GLfloat light_diffuse1[] = {0.2f, 0.6f, 1.0f, 1.0f};
-    glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient1);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse1);
+ 
 
     // Enable OpenGL features
     glEnable(GL_LIGHTING);
