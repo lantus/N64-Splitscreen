@@ -1,2 +1,3 @@
 build/*
 filesystem/*
+assets/*.Identifier
