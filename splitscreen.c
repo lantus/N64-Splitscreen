@@ -21,6 +21,7 @@ typedef struct {
     uint32_t color;
 } vertex_t;
 
+static uint32_t vertex_colors[24];
 static uint8_t controllers_connected[4];
 static surface_t buffer;
 static camera_t cameras[4]; // Array for four player cameras
@@ -105,7 +106,7 @@ static const float cube_size = 3.0f;
 
 // Cube Vertices - taken from glDemo example
 
-static const vertex_t cube_vertices[] = {
+static vertex_t cube_vertices[] = {
     // +X
     { .position = { cube_size, -cube_size, -cube_size}, .texcoord = {0.f, 0.f}, .normal = { 1.f,  0.f,  0.f}, .color = 0x87CEEBFF },
     { .position = { cube_size,  cube_size, -cube_size}, .texcoord = {1.f, 0.f}, .normal = { 1.f,  0.f,  0.f}, .color = 0x87CEEBFF },
@@ -182,36 +183,71 @@ void render_hud()
     enable_interrupts();
 }
 
-void render_cube()
+void render_cube(int viewport_index)
 {
-	glPushMatrix();
+	
+    glPushMatrix();
     glRotatef(box_rot, 0, 1, 0); // Rotate around Y-axis
     glRotatef(box_rot, 1, 0, 0); // Rotate around X-axis
     box_rot += 0.1f;
 
-	glEnable(GL_COLOR_MATERIAL);
-	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
 
-	glVertexPointer(3, GL_FLOAT, sizeof(vertex_t), (void*)(0*sizeof(float) + (void*)cube_vertices));
-	glTexCoordPointer(2, GL_FLOAT, sizeof(vertex_t), (void*)(3*sizeof(float) + (void*)cube_vertices));
-	glNormalPointer(GL_FLOAT, sizeof(vertex_t), (void*)(5*sizeof(float) + (void*)cube_vertices));
-	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(vertex_t), (void*)(8*sizeof(float) + (void*)cube_vertices));
+    // Apply subtle tint based on viewport index
+    float tint_r = viewports[viewport_index].color.x * 0.1f; // 10% of viewport red
+    float tint_g = viewports[viewport_index].color.y * 0.1f; // 10% of viewport green
+    float tint_b = viewports[viewport_index].color.z * 0.1f; // 10% of viewport blue
 
-	glDrawElements(GL_TRIANGLES, sizeof(cube_indices) / sizeof(uint16_t), GL_UNSIGNED_SHORT, cube_indices);
+    glPushMatrix(); // Preserve original matrix for color modification
+    
+    for (int i = 0; i < 24; i++) 
+    {
+        uint32_t original_color = cube_vertices[i].color;
+        uint8_t r = (original_color >> 24) & 0xFF;
+        uint8_t g = (original_color >> 16) & 0xFF;
+        uint8_t b = (original_color >> 8) & 0xFF;
+        uint8_t a = original_color & 0xFF;
 
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
+        // Apply subtle tint, ensuring values stay within 0-255
+        
+        r = (r + (uint8_t)(tint_r * 255.0f) > 255) ? 255 : (r + (uint8_t)(tint_r * 255.0f));
+        g = (g + (uint8_t)(tint_g * 255.0f) > 255) ? 255 : (g + (uint8_t)(tint_g * 255.0f));
+        b = (b + (uint8_t)(tint_b * 255.0f) > 255) ? 255 : (b + (uint8_t)(tint_b * 255.0f));
 
-	glDisable(GL_COLOR_MATERIAL);
-	
-	glPopMatrix();
+        if (viewport_index > 0)
+        {
+            cube_vertices[i].color = (r << 24) | (g << 16) | (b << 8) | a;
+            cube_vertices[i].color *= viewport_index*6;
+        }
+        else
+        {
+            cube_vertices[i].color *= (r << 24) | (g << 16) | (b << 8) | a; 
+        }
+    }
+
+    glVertexPointer(3, GL_FLOAT, sizeof(vertex_t), (void*)(0*sizeof(float) + (void*)cube_vertices));
+    glTexCoordPointer(2, GL_FLOAT, sizeof(vertex_t), (void*)(3*sizeof(float) + (void*)cube_vertices));
+    glNormalPointer(GL_FLOAT, sizeof(vertex_t), (void*)(5*sizeof(float) + (void*)cube_vertices));
+    glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(vertex_t), (void*)(8*sizeof(float) + (void*)cube_vertices));
+
+    glDrawElements(GL_TRIANGLES, sizeof(cube_indices) / sizeof(uint16_t), GL_UNSIGNED_SHORT, cube_indices);
+
+    
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+
+    glDisable(GL_COLOR_MATERIAL);
+    glPopMatrix();
+    glPopMatrix();
 
 }
  
@@ -269,6 +305,14 @@ int main()
     glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
 
+    glEnable(GL_LIGHT1);
+    static const GLfloat light_position1[] = {1.0f, 0.0f, -5.0f, 1.0f};
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    static const GLfloat light_ambient1[] = {0.8f, 0.2f, 0.3f, 1.0f};
+    static const GLfloat light_diffuse1[] = {0.8f, 0.6f, 1.0f, 1.0f};
+    glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient1);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse1);
+
     // Enable OpenGL features
     glEnable(GL_LIGHTING);
     glEnable(GL_NORMALIZE);
@@ -305,7 +349,7 @@ int main()
 		else if (player_count == 2) 
 		{
             viewports[0] = (Viewport){0, 120, 320, 120, {2.0f, 2.0f, 2.0f}, {0.1f, 0.0f, 0.5f, 1.0f}}; // P1: Top half
-            viewports[1] = (Viewport){0, 0, 320, 120, {-2.0f, -2.0f, 2.0f}, {0.0f, 0.4f, 0.0f, 1.0f}}; // P2: Bottom half
+            viewports[1] = (Viewport){0, 0, 320, 120, {-2.0f, -2.0f, 2.0f}, {0.0f, 0.0f, 0.4f, 1.0f}}; // P2: Bottom half
             viewports[2] = (Viewport){0, 0, 0, 0, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}}; // Disable others
             viewports[3] = (Viewport){0, 0, 0, 0, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
         } 
@@ -386,7 +430,7 @@ int main()
             // Apply per-player cube translation
             glPushMatrix();
             glTranslatef(cameras[i].x, cameras[i].y, 0.0f); // Move cube based on player input
-            render_cube();
+            render_cube(i);
             glPopMatrix();
 		}
 
