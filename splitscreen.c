@@ -79,40 +79,28 @@ typedef struct Viewport
 
 Viewport viewports[4] = 
 {
-	// Player 1: Red (Top-left)
+	// Player 1: (Top-left)
     {0, 120, 160, 120, 
     {2.0f, -2.0f, 2.0f}, // Camera position
     {0.1f, 0.0f, 0.5f, 1.0f}  
     }, 
-    // Player 2: Yellow (Top-right)
+    // Player 2: (Top-right)
     {160, 120, 160, 120, 
     {-2.0f, -2.0f, 2.0f}, 
     {0.1f, 0.1f, 0.7f, 1.0f}  
     }, 
-    // Player 3: Blue (Bottom-left)
+    // Player 3: (Bottom-left)
     {0, 0, 160, 120, 
     {2.0f, 2.0f, 2.0f}, 
 	{0.0f, 0.0f, 0.4f, 1.0f} 
     }, 
-    // Player 4: Green (Bottom-right)
+    // Player 4: (Bottom-right)
     {160, 0, 160, 120, 
 	{-2.0f, 2.0f, 2.0f}, 
 	{0.0f, 0.2f, 0.8f, 1.0f}  
     } 
 };
-
-// Camera
-
-void update_camera(const camera_t *c)
-{
-	glLoadIdentity();
-	gluLookAt(
-		0, -c->distance, -c->distance,
-		0, 0, 0,
-		0, 1, 0);
-	glRotatef(c->rotation, 0, 1, 0);
-}
-
+ 
 static const float cube_size = 3.0f;
 
 // Cube Vertices - taken from glDemo example
@@ -183,12 +171,12 @@ void render_hud()
         }
         sprintf(player_text, "Player %d", player_num);
         rdpq_text_print(&(rdpq_textparms_t){
-            .align = ALIGN_LEFT,
+            .align = ALIGN_CENTER,
             .valign = VALIGN_TOP,
             .width = viewports[i].width,
             .height = viewports[i].height,
             .wrap = WRAP_WORD,
-        }, 1, viewports[i].x + 5, viewports[i].y + 5, player_text);
+        }, 1, viewports[i].x + 5, viewports[i].y + 10, player_text);
     }
 	
     enable_interrupts();
@@ -309,24 +297,24 @@ int main()
 		// Update viewports based on player count
         if (player_count == 1) 
 		{
-            viewports[0] = (Viewport){0, 0, 320, 240, {2.0f, 2.0f, 2.0f}, {0.4f, 0.0f, 0.0f, 1.0f}}; // Full screen for P1
+            viewports[0] = (Viewport){0, 0, 320, 240, {2.0f, 2.0f, 2.0f}, {0.1f, 0.0f, 0.5f, 1.0f}}; // Full screen for P1
             viewports[1] = (Viewport){0, 0, 0, 0, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}}; // Disable others
             viewports[2] = (Viewport){0, 0, 0, 0, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
             viewports[3] = (Viewport){0, 0, 0, 0, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
         } 
 		else if (player_count == 2) 
 		{
-            viewports[0] = (Viewport){0, 120, 320, 120, {2.0f, 2.0f, 2.0f}, {0.4f, 0.0f, 0.0f, 1.0f}}; // P1: Top half
+            viewports[0] = (Viewport){0, 120, 320, 120, {2.0f, 2.0f, 2.0f}, {0.1f, 0.0f, 0.5f, 1.0f}}; // P1: Top half
             viewports[1] = (Viewport){0, 0, 320, 120, {-2.0f, -2.0f, 2.0f}, {0.0f, 0.4f, 0.0f, 1.0f}}; // P2: Bottom half
             viewports[2] = (Viewport){0, 0, 0, 0, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}}; // Disable others
             viewports[3] = (Viewport){0, 0, 0, 0, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
         } 
 		else 
 		{ // 3 or 4 players
-            viewports[0] = (Viewport){0, 120, 160, 120, {2.0f, 2.0f, 2.0f}, {0.4f, 0.0f, 0.0f, 1.0f}}; // P1: Top-left
-            viewports[1] = (Viewport){160, 120, 160, 120, {-2.0f, 2.0f, 2.0f}, {0.4f, 0.4f, 0.0f, 1.0f}}; // P2: Top-right
-            viewports[2] = (Viewport){0, 0, 160, 120, {2.0f, -2.0f, 2.0f}, {0.0f, 0.0f, 0.4f, 1.0f}}; // P3: Bottom-left
-            viewports[3] = (Viewport){160, 0, 160, 120, {-2.0f, -2.0f, 2.0f}, {0.0f, 0.4f, 0.0f, 1.0f}}; // P4: Bottom-right
+            viewports[0] = (Viewport){0, 120, 160, 120, {2.0f, 2.0f, 2.0f}, {0.1f, 0.0f, 0.5f, 1.0f}}; // P1: Top-left
+            viewports[1] = (Viewport){160, 120, 160, 120, {-2.0f, 2.0f, 2.0f}, {0.1f, 0.1f, 0.7f, 1.0f} }; // P2: Top-right
+            viewports[2] = (Viewport){0, 0, 160, 120, {2.0f, -2.0f, 2.0f}, {0.0f, 0.0f, 0.4f, 1.0f} }; // P3: Bottom-left
+            viewports[3] = (Viewport){160, 0, 160, 120, {-2.0f, -2.0f, 2.0f}, {0.0f, 0.2f, 0.8f, 1.0f} }; // P4: Bottom-right
         }
 		
         // Poll all four controllers for camera distance and cube movement
