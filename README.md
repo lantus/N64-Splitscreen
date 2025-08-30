@@ -1,4 +1,4 @@
-Demonstration of a 4 player dynamic splitscreen N64 setup by creating up to 4 viewports to demonstrate N64 multiplayer functionality. 
+Simple C program of a 4 player dynamic splitscreen N64 setup by creating up to 4 viewports to demonstrate N64 multiplayer functionality. 
 
 Controllers are mapped to each viewport with movement for P1, P2, P3, P4 unique to their respective viewport.
 
