@@ -25,7 +25,7 @@ static uint32_t vertex_colors[24];
 static uint8_t controllers_connected[4];
 static surface_t buffer;
 static camera_t cameras[4]; // Array for four player cameras
-static float box_rot = 0.3f;
+static float box_rot[4];
 int player_count = 0;
  
 // Fonts
@@ -187,10 +187,10 @@ void render_cube(int viewport_index)
 {
 	
     glPushMatrix();
-    glRotatef(box_rot, 0, 1, 0); // Rotate around Y-axis
-    glRotatef(box_rot, 1, 0, 0); // Rotate around X-axis
-    box_rot += 0.1f;
 
+    glRotatef(cameras[viewport_index].rotation, 0, 1, 0); // Rotate around Y-axis
+    glRotatef(cameras[viewport_index].rotation, 1, 0, 0); // Rotate around X-axis
+ 
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
@@ -206,29 +206,27 @@ void render_cube(int viewport_index)
 
     glPushMatrix(); // Preserve original matrix for color modification
     
+    uint32_t original_color = cube_vertices[0].color;
+    
+    uint8_t r = (original_color >> 24) & 0xFF;
+    uint8_t g = (original_color >> 16) & 0xFF;
+    uint8_t b = (original_color >> 8) & 0xFF;
+
+    uint8_t a = original_color & 0xFF;
+
     for (int i = 0; i < 24; i++) 
     {
-        uint32_t original_color = cube_vertices[i].color;
-        uint8_t r = (original_color >> 24) & 0xFF;
-        uint8_t g = (original_color >> 16) & 0xFF;
-        uint8_t b = (original_color >> 8) & 0xFF;
-        uint8_t a = original_color & 0xFF;
-
         // Apply subtle tint, ensuring values stay within 0-255
         
         r = (r + (uint8_t)(tint_r * 255.0f) > 255) ? 255 : (r + (uint8_t)(tint_r * 255.0f));
         g = (g + (uint8_t)(tint_g * 255.0f) > 255) ? 255 : (g + (uint8_t)(tint_g * 255.0f));
         b = (b + (uint8_t)(tint_b * 255.0f) > 255) ? 255 : (b + (uint8_t)(tint_b * 255.0f));
 
-        if (viewport_index > 0)
-        {
-            cube_vertices[i].color = (r << 24) | (g << 16) | (b << 8) | a;
-            cube_vertices[i].color *= viewport_index*6;
-        }
-        else
-        {
-            cube_vertices[i].color *= (r << 24) | (g << 16) | (b << 8) | a; 
-        }
+        r+=viewport_index*2;
+        g+=viewport_index*4;
+        b+=viewport_index*2;
+
+        cube_vertices[i].color = (r << 24) | (g << 16) | (b << 8) | a;
     }
 
     glVertexPointer(3, GL_FLOAT, sizeof(vertex_t), (void*)(0*sizeof(float) + (void*)cube_vertices));
@@ -238,7 +236,12 @@ void render_cube(int viewport_index)
 
     glDrawElements(GL_TRIANGLES, sizeof(cube_indices) / sizeof(uint16_t), GL_UNSIGNED_SHORT, cube_indices);
 
-    
+    // Restore original colors
+    for (int i = 0; i < 24; i++) 
+    {
+        cube_vertices[i].color = original_color & 0xFFFFFF00; // Clear tint
+        cube_vertices[i].color |= (original_color >> 8) & 0xFF; // Preserve alpha
+    }
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -275,11 +278,14 @@ int main()
 	rdpq_text_register_font(1, font);
 
 	// Initialize four cameras with default distance and rotation
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) 
+    {
         cameras[i].distance = -10.0f; // Adjusted for better visibility
         cameras[i].rotation = 0.0f;
 		cameras[i].x = 0.0f; // Initial X position
         cameras[i].y = 0.0f; // Initial Y position
+
+        box_rot[i] = 0.2f;
     }
 
 	float aspect_ratio = (float)320 / (float)240; // Default aspect ratio
@@ -308,8 +314,8 @@ int main()
     glEnable(GL_LIGHT1);
     static const GLfloat light_position1[] = {1.0f, 0.0f, -5.0f, 1.0f};
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    static const GLfloat light_ambient1[] = {0.8f, 0.2f, 0.3f, 1.0f};
-    static const GLfloat light_diffuse1[] = {0.8f, 0.6f, 1.0f, 1.0f};
+    static const GLfloat light_ambient1[] = {0.1f, 0.4f, 0.3f, 1.0f};
+    static const GLfloat light_diffuse1[] = {0.2f, 0.6f, 1.0f, 1.0f};
     glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient1);
     glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse1);
 
@@ -367,8 +373,22 @@ int main()
         for (int i = 0; i < player_count && i < 4; i++) 
 		{
             joypad_inputs_t inputs = joypad_get_inputs(i);
+            
             float y = inputs.stick_y / 128.0f;
             float x = inputs.stick_x / 128.0f;
+
+            if (inputs.btn.l)
+            {
+                box_rot[i] -= 0.1f;
+            }
+
+            if (inputs.btn.r)
+            {
+                box_rot[i] += 0.1f;
+            }
+
+            cameras[i].rotation +=box_rot[i];
+
             if (fabsf(y) > 0.1f) 
 			{
                 cameras[i].distance += y * 0.2f;
@@ -424,9 +444,7 @@ int main()
                 0.0f, 0.0f, 0.0f,          		 // Look at the center
                 0.0f, 1.0f, 0.0f           		 // Up vector
             );
-			
-			glRotatef(cameras[i].rotation, 0, 1, 0);
-
+		 
             // Apply per-player cube translation
             glPushMatrix();
             glTranslatef(cameras[i].x, cameras[i].y, 0.0f); // Move cube based on player input
